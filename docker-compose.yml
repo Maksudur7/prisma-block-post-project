@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # ১. NestJS App
+  api:
+    build: .
+    container_name: nestjs-prisma-app
+    ports:
+      - "3000:3000"
+    environment:
+      # DATABASE_URL এ পাসওয়ার্ড এবং হোস্ট ঠিক আছে
+      DATABASE_URL: "postgresql://user:mashud1215@db:5432/blog_db?schema=public"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ২. Database (PostgreSQL)
+  db:
+    image: postgres:13
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: mashud1215
+      POSTGRES_DB: blog_db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "user", "-d", "blog_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ৩. Kong Gateway
+  kong:
+    image: kong:latest
+    container_name: kong-gateway-new
+    environment:
+      KONG_DATABASE: "off"
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_ADMIN_GUI_LISTEN: 0.0.0.0:8002
+      # localhost এর জায়গায় অনেক সময় 127.0.0.1 দিলে বেশি স্ট্যাবল হয়
+      KONG_ADMIN_GUI_URL: http://localhost:8002
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"

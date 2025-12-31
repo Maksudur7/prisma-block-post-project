@@ -1,10 +1,15 @@
 import express, { Router } from "express";
 import { postController } from "./post.controller";
+import Mauth, { UserRole } from "../../middelware/auth";
 
 const router = express.Router();
 
+
+
 router.post(
-    "/", postController.createPost
+    "/",
+    Mauth(UserRole.ADMIN),
+    postController.createPost
 )
 
 export const postRouter: Router = router;
