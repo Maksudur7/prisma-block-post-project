@@ -4,7 +4,7 @@ import Mauth, { UserRole } from "../../middelware/auth";
 
 const router = express.Router();
 
-
+router.get("/", postController.getAllPosts);
 
 router.post(
     "/",
