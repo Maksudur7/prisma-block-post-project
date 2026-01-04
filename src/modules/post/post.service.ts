@@ -13,54 +13,92 @@ const createPost = async (data: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'a
     return result;
 }
 
-const getPosts = async (Payload: { search?: string | undefined, tags: string[] | [], isFeatured?: boolean | undefined }): Promise<Post[]> => {
+const getPosts = async ({ search, tags, isFeatured, page, limit, skip, sortBy, sortOrder }: { search?: string | undefined, tags: string[] | [], isFeatured?: boolean | undefined, page?: number, limit?: number, skip?: number, sortBy: string, sortOrder: string }): Promise<Post[]> => {
     const andConditions: PostWhereInput[] = [];
-    if (Payload.search) {
+    if (search) {
         andConditions.push({
             OR: [
                 {
                     title: {
-                        contains: Payload.search as string,
+                        contains: search as string,
                         mode: 'insensitive'
                     }
                 },
                 {
                     content: {
-                        contains: Payload.search as string,
+                        contains: search as string,
                         mode: 'insensitive'
                     }
                 },
                 {
                     tags: {
-                        has: Payload.search as string
+                        has: search as string
                     }
                 }
             ]
         })
     }
 
-    if (Payload.tags.length > 0) {
+    if (tags.length > 0) {
         andConditions.push({
             tags: {
-                hasEvery: Payload.tags as string[]
+                hasEvery: tags as string[]
             }
         })
     }
 
-    if (typeof Payload.isFeatured === 'boolean') {
+    if (typeof isFeatured === 'boolean') {
         andConditions.push({
-            isFeatured: Payload.isFeatured
+            isFeatured: isFeatured
         })
     }
 
     const posts = await prisma.post.findMany({
+        take: limit,
+        skip: skip,
+        where: {
+            AND: andConditions
+        },
+        orderBy: {
+            [sortBy]: sortOrder
+        }
+    });
+
+    const total = await prisma.post.count({
         where: {
             AND: andConditions
         }
     });
-    return posts;
+    return {
+        data: posts,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / (limit || 4))
+        }
+    };
+}
+
+const getPostById = async (id: string) => {
+    const result = await prisma.$transaction(async (tx) => {
+        await tx.post.update({
+            where: { id },
+            data: {
+                views: {
+                    increment: 1
+                }
+            }
+        });
+        const postData = await tx.post.findUnique({
+            where: { id }
+        });
+        return postData;
+    })
+    return result;
 }
 export const postService = {
     createPost,
-    getPosts
+    getPosts,
+    getPostById
 }
