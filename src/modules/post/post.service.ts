@@ -1,3 +1,4 @@
+import { CommentStatus } from './../../../generated/prisma/enums';
 import { Payload, PostWhereInput } from './../../../generated/prisma/internal/prismaNamespace';
 import { Post } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
@@ -61,6 +62,9 @@ const getPosts = async ({ search, tags, isFeatured, page, limit, skip, sortBy, s
         },
         orderBy: {
             [sortBy]: sortOrder
+        },
+        include: {
+            _count: { comments: true }
         }
     });
 
@@ -91,7 +95,35 @@ const getPostById = async (id: string) => {
             }
         });
         const postData = await tx.post.findUnique({
-            where: { id }
+            where: { id },
+            include: {
+                comments: {
+                    where: {
+                        parentId: null,
+                        status: CommentStatus.APPROVED
+                    },
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        replies: {
+                            where: {
+                                status: CommentStatus.APPROVED
+                            },
+                            orderBy: { createdAt: 'asc' },
+                            include: {
+                                replies: {
+                                    where: {
+                                        status: CommentStatus.APPROVED
+                                    },
+                                    orderBy: { createdAt: 'asc' },
+                                }
+                            }
+                        },
+                    }
+                },
+                _count: {
+                    select: { comments: true }
+                }
+            }
         });
         return postData;
     })
