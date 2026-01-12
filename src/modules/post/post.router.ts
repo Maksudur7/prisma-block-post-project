@@ -4,14 +4,43 @@ import Mauth, { UserRole } from "../../middelware/auth";
 
 const router = express.Router();
 
-router.get("/", postController.getAllPosts);
+router.get(
+    "/",
+    postController.getAllPosts
+);
+
+router.get(
+    "/stats",
+    Mauth(UserRole.ADMIN),
+    postController.getStats
+);
+
+router.get("/my-posts",
+    Mauth(UserRole.USER, UserRole.ADMIN),
+    postController.getMyPosts
+);
 
 router.post(
     "/",
-    Mauth(UserRole.ADMIN),
+    Mauth(UserRole.ADMIN,
+        UserRole.USER
+    ),
     postController.createPost
 )
 
-router.get("/:id", postController.getPostById);
+router.patch(
+    '/:postId',
+    Mauth(UserRole.ADMIN, UserRole.USER),
+    postController.updatePost
+)
+
+router.get(
+    "/:id",
+    postController.getPostById
+);
+
+router.delete(
+    '/:postId'
+)
 
 export const postRouter: Router = router;

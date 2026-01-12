@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { postService } from "./post.service";
 import pageinationSortingHelper from "../../helpers/paginationSortingHelper";
+import { UserRole } from "../../middelware/auth";
 
 const createPost = async (req: Request, res: Response) => {
     try {
@@ -44,8 +45,55 @@ const getPostById = async (req: Request, res: Response) => {
     }
 }
 
+const getMyPosts = async (req: Request, res: Response) => {
+    try {
+        const user = req.user
+        const result = await postService.getMyPosts(user?.id as string);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: "Failed to fetch post", details: error });
+    }
+}
+
+const updatePost = async (req: Request, res: Response) => {
+    try {
+        const user = req.user;
+        const { postId } = req.params;
+        const isAdmin = user?.roles === UserRole.ADMIN
+        const result = await postService.updatePost(postId as string, req.body, user?.id as string, isAdmin);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: "Post update failed", details: error });
+    }
+}
+
+const deletPost = async (req: Request, res: Response) => {
+    try {
+        const user = req.user;
+        const { postId } = req.params;
+        const isAdmin = user?.roles === UserRole.ADMIN
+        const result = await postService.deletPost(postId as string, user?.id as string, isAdmin);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: "Post deleted failed", details: error });
+    }
+}
+
+const getStats = async (req: Request, res: Response) => {
+    try {
+        const result = await postService.getStats();
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({ error: "Stats fetched failed", details: error });
+    }
+}
+
 export const postController = {
     createPost,
     getAllPosts,
-    getPostById
+    getPostById,
+    getMyPosts,
+    updatePost,
+    deletPost,
+    getStats
 }
