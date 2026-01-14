@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { postService } from "./post.service";
 import pageinationSortingHelper from "../../helpers/paginationSortingHelper";
 import { UserRole } from "../../middelware/auth";
@@ -55,7 +55,7 @@ const getMyPosts = async (req: Request, res: Response) => {
     }
 }
 
-const updatePost = async (req: Request, res: Response) => {
+const updatePost = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = req.user;
         const { postId } = req.params;
@@ -63,7 +63,7 @@ const updatePost = async (req: Request, res: Response) => {
         const result = await postService.updatePost(postId as string, req.body, user?.id as string, isAdmin);
         res.status(200).json(result);
     } catch (error) {
-        res.status(400).json({ error: "Post update failed", details: error });
+        next()
     }
 }
 
@@ -79,12 +79,12 @@ const deletPost = async (req: Request, res: Response) => {
     }
 }
 
-const getStats = async (req: Request, res: Response) => {
+const getStats = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const result = await postService.getStats();
         res.status(200).json(result);
     } catch (error) {
-        res.status(400).json({ error: "Stats fetched failed", details: error });
+        next(error)
     }
 }
 

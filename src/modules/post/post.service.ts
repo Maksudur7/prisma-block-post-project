@@ -2,6 +2,7 @@ import { CommentStatus, PostStatus } from './../../../generated/prisma/enums';
 import { Payload, PostWhereInput, Result } from './../../../generated/prisma/internal/prismaNamespace';
 import { Post } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
+import { promise } from 'better-auth/*';
 
 const createPost = async (data: Omit<Post, 'id' | 'createdAt' | 'updatedAt' | 'authorId'>, userId: string) => {
     const result = await prisma.post.create({
@@ -227,32 +228,37 @@ const deletPost = async (postId: string, authorId: string, isAdmin: boolean) => 
     })
 }
 
-const getStats = async ()=>{
-return await prisma.$transaction(async (tx) =>{
-    const totalPost = await tx.post.count();
-    const publishedPosts = await tx.post.count({
-        where:{
-            status: PostStatus.PUBLISHED
-        }
-    })
-    const draftPost = await tx.post.count({
-        where:{
-            status: PostStatus.DRAFT
-        }
-    })
-    const archivedPosts = await tx.post.count({
-        where:{
-            status: PostStatus.ARCHIVED
-        }
-    })
+const getStats = async () => {
+    return await prisma.$transaction(async (tx) => {
+        const [totalPost, publishedPosts, draftPost, archivedPosts, totalComment, approveComment, rejecteComment, totalUsers, adminCount, userCount, totalViews] = await Promise.all([
+            await tx.post.count(),
+            await tx.post.count({ where: { status: PostStatus.PUBLISHED } }),
+            await tx.post.count({ where: { status: PostStatus.DRAFT } }),
+            await tx.post.count({ where: { status: PostStatus.ARCHIVED } }),
+            await tx.comment.count(),
+            await tx.comment.count({ where: { status: CommentStatus.APPROVED } }),
+            await tx.comment.count({ where: { status: CommentStatus.REJECTED } }),
+            await tx.user.count(),
+            await tx.user.count({ where: { role: "ADMIN" } }),
+            await tx.user.count({ where: { role: "USER" } }),
+            await tx.post.aggregate({ _sum: { views: true } })
+        ])
 
-    return{
-        totalPost,
-        publishedPosts,
-        draftPost,
-        archivedPosts
-    }
-})
+        return {
+            totalPost,
+            publishedPosts,
+            draftPost,
+            archivedPosts,
+            totalComment,
+            approveComment,
+            rejecteComment,
+            totalUsers,
+            adminCount,
+            userCount,
+            totalViews : totalViews._sum.views
+
+        }
+    })
 }
 
 export const postService = {
