@@ -25,7 +25,20 @@ function errorHandler(
             statusCode = 400;
             errorMassage = "Foreign key constincy failed"
         }
-
+    } else if (err instanceof Prisma.PrismaClientUnknownRequestError) {
+        statusCode = 500
+        errorMassage = "unknown error"
+    } else if (err instanceof Prisma.PrismaClientRustPanicError) {
+        statusCode = 500
+        errorMassage = 'crush your prisma engin'
+    } else if (err instanceof Prisma.PrismaClientInitializationError) {
+        if (err.errorCode === 'P1000') {
+            statusCode = 401
+            errorMassage = "Authentication failed. Please check your creditials"
+        } else if (err.errorCode === "P1001") {
+            statusCode = 400
+            errorMassage = 'Can`t reach database server'
+        }
     }
 
     res.status(statusCode)
